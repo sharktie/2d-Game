@@ -59,7 +59,7 @@ export default class DeathScreen extends Phaser.Scene {
     box.fillRoundedRect(boxX + 150, boxY, boxWidth, boxHeight, 10);
     box.lineStyle(2, 0xffffff, 1);
     box.strokeRoundedRect(boxX + 150, boxY, boxWidth, boxHeight, 10);
-    const menu = this.add.text(width / 2 + 150, boxY + boxHeight / 2, 'MENU', {
+    const menu = this.add.text(width / 2 + 150, boxY + boxHeight / 2, 'LEADERBOARD', {
       fontSize: '24px',
       color: '#ffffff'                                                        //menu
     }).setOrigin(0.5);          
@@ -67,7 +67,7 @@ export default class DeathScreen extends Phaser.Scene {
     menu.setInteractive();
 
     menu.on('pointerdown', () => {
-      this.scene.start('MenuScreen');
+      this.scene.start('Leaderboard');
     });
   }
 }
