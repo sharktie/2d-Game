@@ -4,7 +4,7 @@ export default class PreloadStuff extends Phaser.Scene {
     super('PreloadStuff');
   }
 
-    create     () {
+  preload() {
      this.load.image('player', 'assets/player.png');   //player image
      this.load.image('platform', 'assets/platform.png');    //platform image
      this.load.image('bg', 'assets/bg.png');   //background image
@@ -17,8 +17,8 @@ export default class PreloadStuff extends Phaser.Scene {
      this.load.audio('death', 'assets/death.mp3'); //death sound
      }
 
-    update() {  
+  create() {
     this.scene.start('MenuScreen');
-    }
+  }
 
 }

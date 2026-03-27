@@ -1,7 +1,7 @@
 import Input from '../system/input.js';
 import Player from '../entities/Player.js';
 import ChunkGenerator from '../world/ChunkGen.js';
-
+import { submitScore } from '../system/firebase.js';
 
 export default class GameScreen extends Phaser.Scene {
 
@@ -9,10 +9,12 @@ export default class GameScreen extends Phaser.Scene {
     super('GameScreen');
   }
 
-  
+ 
 
-  create() {
+  create(data) {
 
+    this.playerName = data.playerName || "Player";                   //receiving name
+    this.dead = false
     this.score = 0;                                                          //score var
     this.platforms = this.physics.add.staticGroup();
 
@@ -37,12 +39,33 @@ export default class GameScreen extends Phaser.Scene {
     this.scoreText.setText('Score: ' + this.score);
     this.chunk.update(this.player.MC.x);                       //the game loop
 
-    if (this.player.MC.y > 1000) {
-      this.scene.start('DeathScreen',{
-       score: this.score
-      });
-    }
-                 //score clac
 
+    if (!this.dead && this.player.MC.y > 1000) {
+     this.dead = true;
+     this.handleDeath();
+    }
   }
-}
+
+async handleDeath() {
+  const name = this.playerName || "Player";
+
+  console.log("Submitting score:", name, this.score);
+
+  // freeze player
+  this.player.MC.setVelocity(0, 0);
+  this.player.MC.body.enable = false;
+
+  try {
+    await submitScore(name, this.score);
+    console.log("Score submitted successfully!");  // great success
+  } catch (e) {
+    console.error("Score submit failed:", e);     // oh no
+  }
+
+  this.registry.set('playerScore', this.score);
+  this.scene.start('DeathScreen', {
+    score: this.score
+  });
+ }
+}           
+

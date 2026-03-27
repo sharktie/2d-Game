@@ -3,6 +3,7 @@ import MenuScreen from './src/scenes/MenuScreen.js';
 import GameScreen from './src/scenes/GameScreen.js';
 import DeathScreen from './src/scenes/DeathScreen.js';
 import IntroScreen from './src/scenes/IntroScreen.js';
+import Leaderboard from './src/scenes/Leaderboard.js';
 
 const config = {
   type: Phaser.AUTO,
@@ -15,7 +16,7 @@ const config = {
       debug: true
     }
   },
-  scene: [PreloadStuff, MenuScreen, IntroScreen, GameScreen, DeathScreen]
+  scene: [PreloadStuff, MenuScreen, Leaderboard, IntroScreen, GameScreen, DeathScreen]
 };
 
 new Phaser.Game(config);

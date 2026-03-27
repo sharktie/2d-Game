@@ -1,4 +1,4 @@
-import GameScreen from './GameScreen.js';
+
 
 export default class MenuScreen extends Phaser.Scene {
   constructor() {
@@ -58,9 +58,9 @@ export default class MenuScreen extends Phaser.Scene {
 
     menu.setInteractive();
 
-   // menu.on('pointerdown', () => {
-   //   this.scene.start('MenuScreen');                 //leaderboard eventually
-   //   });
+     menu.on('pointerdown', () => {
+     this.scene.start('Leaderboard');                 //leaderboard
+     });
 
   }
 }

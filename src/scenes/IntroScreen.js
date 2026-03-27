@@ -65,7 +65,7 @@ export default class IntroScreen extends Phaser.Scene {
         this.startGreeting();
       }
 
-      // LETTER INPUT ONLY
+      
       else if (event.key.length === 1) {
         const char = event.key;
 
@@ -112,12 +112,12 @@ export default class IntroScreen extends Phaser.Scene {
       delay: 50,
       repeat: message.length - 1,
       callback: () => {
-        this.text.text += message[i];
+        this.text.text += message[i];                                  //letter by letter again prob should make a function for this ngl
         i++;
 
         if (i === message.length) {
           this.time.delayedCall(1200, () => {
-            this.scene.start('GameScreen');
+            this.scene.start('GameScreen', { playerName: this.playerName });
           });
         }
       }
