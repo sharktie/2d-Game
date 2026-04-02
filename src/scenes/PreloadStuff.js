@@ -21,8 +21,8 @@ export default class PreloadStuff extends Phaser.Scene {
      }
 
   create() {
-    this.scene.start('GameScreen');  //testing
-   // this.scene.start('MenuScreen');   
+   // this.scene.start('GameScreen');  //testing
+    this.scene.start('MenuScreen');   
   }
 
 }
