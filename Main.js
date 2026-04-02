@@ -16,7 +16,7 @@ const config = {
       debug: true
     }
   },
-  scene: [PreloadStuff, MenuScreen, Leaderboard, IntroScreen, GameScreen, DeathScreen]
+  scene: [PreloadStuff, GameScreen, DeathScreen]
 };
 
 new Phaser.Game(config);

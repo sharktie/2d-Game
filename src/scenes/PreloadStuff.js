@@ -8,6 +8,9 @@ export default class PreloadStuff extends Phaser.Scene {
      this.load.image('player', 'assets/player.png');   //player image
      this.load.image('platform', 'assets/platform.png');    //platform image
      this.load.image('bg', 'assets/bg.png');   //background image
+     this.load.image('coin', 'assets/coin.png'); //coin image
+     this.load.image('brick', 'assets/brick.png'); //brick image
+     this.load.image('enemy', 'assets/enemy.png'); //enemy image
 
      this.load.audio('menu', 'assets/menu.mp3');   //menu music
      this.load.audio('type', 'assets/type.mp3');   //typewriter sound
@@ -18,7 +21,8 @@ export default class PreloadStuff extends Phaser.Scene {
      }
 
   create() {
-    this.scene.start('MenuScreen');
+    this.scene.start('GameScreen');  //testing
+   // this.scene.start('MenuScreen');   
   }
 
 }

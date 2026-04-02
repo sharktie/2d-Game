@@ -4,7 +4,7 @@ export default class Input {
 
     this.keys = wasd.input.keyboard.createCursorKeys();        //arrow keys
 
-    // extra keys (for dash etc.)
+    // extra keys
     this.space = wasd.input.keyboard.addKey(
       Phaser.Input.Keyboard.KeyCodes.SPACE                //space bar
     );
@@ -22,15 +22,19 @@ export default class Input {
     return this.keys.right.isDown;
   }
 
-  JumpDown() {
-    return this.keys.up.isDown;
+  JumpPressed() {
+    return Phaser.Input.Keyboard.JustDown(this.space) || Phaser.Input.Keyboard.JustDown(this.keys.up);
+  }
+
+  jumpReleased() {
+    return Phaser.Input.Keyboard.JustUp(this.keys.up) || Phaser.Input.Keyboard.JustUp(this.space);
   }
 
   DashPressed() {
-    return Phaser.Input.Keyboard.JustDown(this.space);
+    return Phaser.Input.Keyboard.JustDown(this.shift);
   }
 
   DashHeld() {
-    return this.space.isDown;
+    return this.shift.isDown;
   }
 }
