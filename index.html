@@ -2,11 +2,47 @@
 <html>
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <title>My Platformer</title>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=block" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/phaser@3/dist/phaser.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #000;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      overflow: hidden;
+    }
+    canvas { display: block; }
+
+    /* Mobile keyboard overlay — invisible but focusable */
+    #name-input {
+      position: fixed;
+      opacity: 0;
+      pointer-events: none;
+      top: 50%;
+      left: 50%;
+      width: 1px;
+      height: 1px;
+      border: none;
+      outline: none;
+      background: transparent;
+      color: transparent;
+      caret-color: transparent;
+      font-size: 16px; /* prevents iOS auto-zoom */
+      transform: translate(-50%, -50%);
+    }
+  </style>
 </head>
 <body>
-  <script type="module" src="Main.js"></script>
+  <!-- Hidden input that triggers the mobile virtual keyboard -->
+  <input id="name-input" type="text" maxlength="12"
+    autocomplete="off" autocorrect="off" autocapitalize="off"
+    spellcheck="false" enterkeyhint="done">
 
+  <script type="module" src="Main.js"></script>
 </body>
 </html>

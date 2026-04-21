@@ -1,4 +1,12 @@
-import Enemy from '../entities/Enemy.js';
+// ChunkGenerator is the shared utility layer.
+// It owns: createBlock, gap/platform/high-risk terrain primitives, and cleanup.
+// Coin and enemy spawning are delegated to CoinSpawner and EnemySpawner.
+// The chunk loop lives in Levels/InfiniteLevel.js (or any future level file).
+// Stairs live in Generators/Stairs.js.
+// The starting platform lives in Generators/SpawnPlatform.js.
+import MovablePlatformGenerator from './Generators/MovablePlatform.js';
+import CoinSpawner from './Generators/CoinSpawner.js';
+import EnemySpawner from './Generators/EnemySpawner.js';
 
 export default class ChunkGenerator {
   // === CONSTANTS ===
@@ -15,9 +23,9 @@ export default class ChunkGenerator {
 
   // Max gap sizes — kept sane so jumps are always possible
   static gapMinNormal = 1;
-  static gapMaxNormal = 5;   // scales up to this with difficulty
+  static gapMaxNormal = 5;
   static gapMinHigh = 2;
-  static gapMaxHigh = 6;     // scales up to this with difficulty
+  static gapMaxHigh = 6;
 
   constructor(scene) {
     this.scene = scene;
@@ -26,11 +34,11 @@ export default class ChunkGenerator {
     this.biome = 'grass';
     this.totalColsGenerated = 0;
     this.gameStartTime = Date.now();
-  }
 
-  // difficulty: 1 (easy) → 4 (hardest), ramps over ~320 cols (~16 chunks)
-  getDifficulty(startCol) {
-    return Math.min(4, 1 + (startCol / 320) * 3);
+    // Specialised generators (coin/enemy logic extracted out of this file)
+    this.movablePlatformGen = new MovablePlatformGenerator(scene);
+    this.coinSpawner = new CoinSpawner(scene);
+    this.enemySpawner = new EnemySpawner(scene);
   }
 
   createBlock(x, y, texture = 'brick') {
@@ -53,65 +61,6 @@ export default class ChunkGenerator {
     }
 
     return block;
-  }
-
-  createStartingPlatform() {
-    const startHeight = 10;
-    const width = 8;
-
-    for (let i = -3; i < width - 3; i++) {
-      this.createBlock(i, startHeight);
-    }
-    for (let i = -3; i < width - 3; i++) {
-      this.createBlock(i, startHeight + 1);
-    }
-
-    if (this.scene.player && this.scene.player.MC) {
-      this.scene.player.MC.setPosition(
-        0 * ChunkGenerator.tilesize,
-        (startHeight - 2) * ChunkGenerator.tilesize
-      );
-    }
-  }
-
-  generateChunk(startCol) {
-    let currentHeight = (startCol === 0) ? 10 : 8;
-    let col = startCol;
-
-    // Update difficulty based on how far we've generated
-    this.difficulty = this.getDifficulty(startCol);
-
-    while (col < startCol + this.chunkSize) {
-      const roll = Math.random();
-
-      // 1. LONG PLATFORM (35%)
-      if (roll < 0.35) {
-        const platformLength = this.createLongPlatform(col, currentHeight);
-        col += platformLength + Phaser.Math.Between(1, 2);
-      }
-
-      // 2. STAIRS (25%)
-      else if (roll < 0.60) {
-        col = this.createStairs(col, currentHeight);
-        currentHeight = this.getHeightAtCol(col);
-      }
-
-      // 3. GAP WITH COINS (25%)
-      else if (roll < 0.85) {
-        const result = this.createGap(col, currentHeight);
-        col = result.endCol;
-        currentHeight = result.height;
-      }
-
-      // 4. HIGH RISK PLATFORM (15%)
-      else {
-        const result = this.createHighRiskSegment(col, currentHeight);
-        col = result.endCol;
-        currentHeight = result.height;
-      }
-    }
-
-    this.totalColsGenerated = col;
   }
 
   createLongPlatform(col, height) {
@@ -148,54 +97,14 @@ export default class ChunkGenerator {
     return length;
   }
 
-  createStairs(startCol, startHeight) {
-    const steps = Phaser.Math.Between(
-      ChunkGenerator.stairsmin,
-      ChunkGenerator.stairsmax
-    );
-    const direction = Math.random() > 0.5 ? -1 : 1;
-
-    let currentHeight = startHeight;
-    let col = startCol;
-
-    for (let i = 0; i < steps; i++) {
-      currentHeight += direction;
-      currentHeight = Phaser.Math.Clamp(
-        currentHeight,
-        ChunkGenerator.minheight,
-        ChunkGenerator.maxheight
-      );
-
-      this.createBlock(col, currentHeight);
-      col++;
-    }
-
-    // At difficulty 2+, occasionally spawn an enemy on the staircase
-    const timeSinceStart = Date.now() - this.gameStartTime;
-    const stairEnemyChance = Math.max(0, (this.difficulty - 1.5) * 0.2); // 0 → ~0.5
-    if (timeSinceStart > 2000 && steps >= 3 && Math.random() < stairEnemyChance) {
-      const midStep = startCol + Math.floor(steps / 2);
-      const playerTileX = Math.floor(this.scene.player.MC.x / ChunkGenerator.tilesize);
-      if (midStep > playerTileX + 5) {
-        const stepHeight = this.getHeightAtCol(midStep);
-        this.spawnEnemy(midStep, stepHeight - 1);
-      }
-    }
-
-    return col;
-  }
-
   createGap(startCol, currentHeight) {
-    // Gap size scales with difficulty: 1–2 early → 1–5 late
     const maxGap = Math.min(
       ChunkGenerator.gapMaxNormal,
       ChunkGenerator.gapMinNormal + Math.floor(this.difficulty)
     );
-    let gapSize = Phaser.Math.Between(ChunkGenerator.gapMinNormal, maxGap);
-
+    const gapSize = Phaser.Math.Between(ChunkGenerator.gapMinNormal, maxGap);
     const landingCol = startCol + gapSize;
 
-    // Height change grows with difficulty
     const maxHeightDelta = Math.min(3, 1 + Math.floor((this.difficulty - 1) * 0.8));
     currentHeight += Phaser.Math.Between(-maxHeightDelta, maxHeightDelta);
     currentHeight = Phaser.Math.Clamp(
@@ -204,7 +113,6 @@ export default class ChunkGenerator {
       ChunkGenerator.maxheight
     );
 
-    // Shorter landing at higher difficulty (min 2 tiles)
     const landingLength = Math.max(2, 3 - Math.floor((this.difficulty - 1) * 0.5));
     for (let i = 0; i < landingLength; i++) {
       this.createBlock(landingCol + i, currentHeight);
@@ -219,16 +127,13 @@ export default class ChunkGenerator {
   }
 
   createHighRiskSegment(startCol, currentHeight) {
-    // Gap scales: 2–3 early → 2–6 late
     const maxGap = Math.min(
       ChunkGenerator.gapMaxHigh,
       ChunkGenerator.gapMinHigh + Math.floor(this.difficulty)
     );
-    let gapSize = Phaser.Math.Between(ChunkGenerator.gapMinHigh, maxGap);
-
+    const gapSize = Phaser.Math.Between(ChunkGenerator.gapMinHigh, maxGap);
     const landingCol = startCol + gapSize;
 
-    // More drastic height drops at higher difficulty
     const maxDrop = Math.min(3, 1 + Math.floor((this.difficulty - 1) * 0.7));
     currentHeight -= Phaser.Math.Between(1, maxDrop);
     currentHeight = Phaser.Math.Clamp(
@@ -237,7 +142,6 @@ export default class ChunkGenerator {
       ChunkGenerator.maxheight
     );
 
-    // Shorter landing at high difficulty (min 2 tiles)
     const landingLength = Math.max(2, 3 - Math.floor((this.difficulty - 1) * 0.5));
     for (let i = 0; i < landingLength; i++) {
       this.createBlock(landingCol + i, currentHeight);
@@ -246,10 +150,9 @@ export default class ChunkGenerator {
     this.spawnCoinLine(landingCol, currentHeight - 2, 5);
     this.spawnCoinArc(startCol, landingCol, currentHeight);
 
-    // Moving platform helper — less likely as difficulty increases
     const movingPlatformChance = Math.max(0.1, 0.75 - (this.difficulty - 1) * 0.2);
     if (Math.random() < movingPlatformChance) {
-      this.spawnMovingPlatform(startCol + 1, currentHeight + 2);
+      this.movablePlatformGen.spawnMovingPlatform(startCol + 1, currentHeight + 2);
     }
 
     return {
@@ -264,107 +167,26 @@ export default class ChunkGenerator {
       p => Math.abs(p.x - col * ChunkGenerator.tilesize) < 16
     );
 
-    if (platformsAtCol.length === 0) {
-      return 8;
-    }
+    if (platformsAtCol.length === 0) return 8;
 
     return Math.min(...platformsAtCol.map(p => p.y / ChunkGenerator.tilesize)) - 1;
   }
 
   // ==============================
-  // ENEMIES
+  // THIN WRAPPERS — delegate to extracted spawners
+  // These exist so callers (Stairs, etc.) don't need to change.
   // ==============================
+
   spawnEnemy(tileX, tileY) {
-    if (!this.scene.enemies) {
-      console.error('Enemies group not initialized');
-      return;
-    }
-
-    // Prevent spawning too close to the player
-    new Enemy(this.scene, tileX * ChunkGenerator.tilesize, tileY * ChunkGenerator.tilesize);
+    this.enemySpawner.spawn(tileX, tileY);
   }
-
-  // ==============================
-  // MOVING PLATFORMS
-  // ==============================
-  spawnMovingPlatform(x, y) {
-    if (!this.scene.movingPlatforms) {
-      console.error('Moving platforms group not initialized');
-      return;
-    }
-
-    const width = ChunkGenerator.movingplatformwidth;
-    const platformGroup = x;
-
-    for (let i = 0; i < width; i++) {
-      const platform = this.scene.movingPlatforms.create(
-        (x + i) * ChunkGenerator.tilesize,
-        y * ChunkGenerator.tilesize,
-        'ground'
-      );
-
-      if (!platform) continue;
-
-      platform.setScale(ChunkGenerator.tilesize / 256);
-      platform.setImmovable(true);
-      if (platform.body) {
-        platform.body.allowGravity = false;
-        platform.body.setCollideWorldBounds(false);
-        platform.refreshBody();
-      }
-      platform.platformGroup = platformGroup;
-    }
-
-    const startX = x * ChunkGenerator.tilesize;
-    const platformsInGroup = this.scene.movingPlatforms.getChildren().filter(p => p.platformGroup === platformGroup);
-
-    this.scene.tweens.add({
-      targets: platformsInGroup,
-      x: (platform) => startX + platform.offsetX + Phaser.Math.Between(
-        ChunkGenerator.movingplatformdistance,
-        ChunkGenerator.movingplatformdistance * 2
-      ),
-      duration: 2000 + Math.random() * 1000,
-      yoyo: true,
-      repeat: -1,
-      ease: 'Sine.easeInOut'
-    });
-  }
-
-  // ==============================
-  // COINS (GUIDE PLAYER)
-  // ==============================
 
   spawnCoinArc(startX, endX, baseHeight) {
-    if (!this.scene.coins) {
-      console.error('Coins group not initialized');
-      return;
-    }
-
-    const distance = endX - startX;
-
-    for (let x = startX; x <= endX; x++) {
-      const t = (x - startX) / distance;
-      const heightOffset = Math.sin(t * Math.PI) * 3;
-
-      this.scene.coins.create(
-        x * ChunkGenerator.tilesize,
-        (baseHeight - heightOffset - 2) * ChunkGenerator.tilesize, 'coin'
-      );
-    }
+    this.coinSpawner.spawnArc(startX, endX, baseHeight);
   }
 
   spawnCoinLine(x, y, length) {
-    if (!this.scene.coins) {
-      console.error('Coins group not initialized');
-      return;
-    }
-
-    for (let i = 0; i < length; i++) {
-      this.scene.coins.create(
-        (x + i) * ChunkGenerator.tilesize, y * ChunkGenerator.tilesize, 'coin'
-      );
-    }
+    this.coinSpawner.spawnLine(x, y, length);
   }
 
   // ==============================
